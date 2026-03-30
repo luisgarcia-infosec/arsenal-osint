@@ -10,7 +10,7 @@
 
 ## 🚀 Acceso rápido
 
-**👉 [Ver Arsenal completo](https://proyects-luis.netlify.app)**
+**👉 [Ver Arsenal completo](https://arsenal-osint-luis.netlify.app/)**
 
 O descargá `index.html` y abrilo directo en tu browser — sin instalación, sin dependencias.
 
