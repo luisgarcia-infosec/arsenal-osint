@@ -1,0 +1,2003 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arsenal OSINT — Luis García | InfoSec</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700;800&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #04080f;
+      --bg2: #070e1a;
+      --bg3: #0a1428;
+      --panel: rgba(0, 245, 255, 0.04);
+      --panel-border: rgba(0, 245, 255, 0.12);
+      --cyan: #00f5ff;
+      --green: #00ff88;
+      --red: #ff3366;
+      --yellow: #ffd700;
+      --purple: #a855f7;
+      --text: #c9d8e8;
+      --text-dim: #567898;
+      --text-bright: #e8f4ff;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ---- SCANLINE OVERLAY ---- */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 245, 255, 0.013) 2px,
+        rgba(0, 245, 255, 0.013) 4px
+      );
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* ---- GRID BACKGROUND ---- */
+    body::after {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-image:
+        linear-gradient(rgba(0, 245, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 245, 255, 0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ---- HEADER ---- */
+    header {
+      position: relative;
+      z-index: 10;
+      border-bottom: 1px solid rgba(0, 245, 255, 0.2);
+      background: linear-gradient(180deg, rgba(0,245,255,0.06) 0%, transparent 100%);
+      padding: 40px 40px 30px;
+      display: flex;
+      align-items: center;
+      gap: 28px;
+    }
+
+    .logo-wrap {
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .logo-wrap img {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      border: 2px solid var(--cyan);
+      box-shadow: 0 0 20px rgba(0,245,255,0.4), 0 0 60px rgba(0,245,255,0.15);
+      object-fit: cover;
+      display: block;
+    }
+
+    .logo-wrap::after {
+      content: '';
+      position: absolute;
+      top: -4px; left: -4px; right: -4px; bottom: -4px;
+      border-radius: 50%;
+      border: 1px solid rgba(0,245,255,0.3);
+      animation: pulse-ring 2.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse-ring {
+      0%, 100% { transform: scale(1); opacity: 0.6; }
+      50% { transform: scale(1.08); opacity: 0.2; }
+    }
+
+    .header-info { flex: 1; }
+
+    .header-tag {
+      font-size: 0.65rem;
+      color: var(--cyan);
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      opacity: 0.8;
+    }
+
+    .header-name {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 2rem;
+      font-weight: 900;
+      color: var(--text-bright);
+      line-height: 1;
+      margin-bottom: 8px;
+      text-shadow: 0 0 30px rgba(0,245,255,0.3);
+    }
+
+    .header-name span { color: var(--cyan); }
+
+    .header-title {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      letter-spacing: 0.1em;
+    }
+
+    .header-links {
+      display: flex;
+      gap: 12px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    .header-links a {
+      font-size: 0.65rem;
+      color: var(--cyan);
+      text-decoration: none;
+      border: 1px solid rgba(0,245,255,0.3);
+      padding: 4px 10px;
+      border-radius: 3px;
+      letter-spacing: 0.08em;
+      transition: all 0.2s;
+    }
+
+    .header-links a:hover {
+      background: rgba(0,245,255,0.1);
+      box-shadow: 0 0 10px rgba(0,245,255,0.2);
+    }
+
+    .header-stats {
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .stat-num {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 2.2rem;
+      font-weight: 900;
+      color: var(--cyan);
+      line-height: 1;
+      text-shadow: 0 0 20px rgba(0,245,255,0.5);
+    }
+
+    .stat-label {
+      font-size: 0.6rem;
+      color: var(--text-dim);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+
+    /* ---- ABOUT BANNER ---- */
+    .about-banner {
+      position: relative;
+      z-index: 10;
+      margin: 20px 40px;
+      padding: 20px 24px;
+      background: rgba(0, 245, 255, 0.03);
+      border: 1px solid rgba(0,245,255,0.1);
+      border-left: 3px solid var(--cyan);
+      border-radius: 4px;
+    }
+
+    .about-banner p {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      line-height: 1.8;
+    }
+
+    .about-banner strong { color: var(--cyan); }
+    .about-banner a { color: var(--green); text-decoration: none; }
+    .about-banner a:hover { text-decoration: underline; }
+
+    /* ---- CONTROLS ---- */
+    .controls {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(4, 8, 15, 0.95);
+      border-bottom: 1px solid rgba(0,245,255,0.1);
+      padding: 14px 40px;
+      backdrop-filter: blur(10px);
+    }
+
+    .controls-inner {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .search-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 200px;
+      max-width: 360px;
+    }
+
+    .search-wrap::before {
+      content: '⌕';
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--cyan);
+      font-size: 1.1rem;
+      pointer-events: none;
+    }
+
+    #searchInput {
+      width: 100%;
+      background: rgba(0,245,255,0.05);
+      border: 1px solid rgba(0,245,255,0.2);
+      color: var(--text-bright);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      padding: 8px 12px 8px 36px;
+      border-radius: 4px;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    #searchInput:focus {
+      border-color: var(--cyan);
+      box-shadow: 0 0 15px rgba(0,245,255,0.15);
+    }
+
+    #searchInput::placeholder { color: var(--text-dim); }
+
+    .filters {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.08em;
+      padding: 5px 12px;
+      border-radius: 3px;
+      border: 1px solid rgba(0,245,255,0.2);
+      background: transparent;
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .filter-btn:hover, .filter-btn.active {
+      background: rgba(0,245,255,0.1);
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+
+    /* ---- MAIN CONTENT ---- */
+    .main {
+      position: relative;
+      z-index: 10;
+      padding: 30px 40px 60px;
+    }
+
+    /* ---- SECTION ---- */
+    .section {
+      margin-bottom: 50px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .section-icon {
+      width: 36px;
+      height: 36px;
+      background: rgba(0,245,255,0.08);
+      border: 1px solid rgba(0,245,255,0.25);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+    }
+
+    .section-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-bright);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+
+    .section-count {
+      font-size: 0.6rem;
+      color: var(--text-dim);
+      margin-left: auto;
+      padding: 3px 8px;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 3px;
+    }
+
+    .section-line {
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, rgba(0,245,255,0.3), transparent);
+    }
+
+    /* ---- CARD GRID ---- */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 14px;
+    }
+
+    /* ---- TOOL CARD ---- */
+    .tool-card {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 6px;
+      padding: 18px 20px;
+      position: relative;
+      transition: all 0.25s;
+      cursor: default;
+      overflow: hidden;
+    }
+
+    .tool-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 3px;
+      height: 100%;
+      background: var(--card-accent, var(--cyan));
+      border-radius: 6px 0 0 6px;
+    }
+
+    .tool-card:hover {
+      border-color: rgba(0,245,255,0.3);
+      background: rgba(0,245,255,0.06);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.4), 0 0 20px rgba(0,245,255,0.05);
+    }
+
+    .card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .card-name {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-bright);
+      line-height: 1.3;
+    }
+
+    .badges {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+
+    .badge {
+      font-size: 0.52rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      padding: 2px 7px;
+      border-radius: 2px;
+      text-transform: uppercase;
+    }
+
+    .badge-free {
+      background: rgba(0,255,136,0.15);
+      color: var(--green);
+      border: 1px solid rgba(0,255,136,0.3);
+    }
+
+    .badge-paid {
+      background: rgba(255,215,0,0.12);
+      color: var(--yellow);
+      border: 1px solid rgba(255,215,0,0.3);
+    }
+
+    .badge-freemium {
+      background: rgba(168,85,247,0.12);
+      color: var(--purple);
+      border: 1px solid rgba(168,85,247,0.3);
+    }
+
+    .badge-kali {
+      background: rgba(0,245,255,0.1);
+      color: var(--cyan);
+      border: 1px solid rgba(0,245,255,0.3);
+    }
+
+    .badge-ar {
+      background: rgba(255,51,102,0.12);
+      color: var(--red);
+      border: 1px solid rgba(255,51,102,0.3);
+    }
+
+    .card-desc {
+      font-size: 0.68rem;
+      color: var(--text-dim);
+      line-height: 1.7;
+      margin-bottom: 14px;
+    }
+
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .card-link {
+      font-size: 0.62rem;
+      color: var(--cyan);
+      text-decoration: none;
+      border: 1px solid rgba(0,245,255,0.2);
+      padding: 5px 12px;
+      border-radius: 3px;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .card-link:hover {
+      background: rgba(0,245,255,0.1);
+      box-shadow: 0 0 12px rgba(0,245,255,0.2);
+    }
+
+    .card-link::after { content: '↗'; font-size: 0.8em; }
+
+    .kali-btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.62rem;
+      color: var(--cyan);
+      background: rgba(0,245,255,0.06);
+      border: 1px solid rgba(0,245,255,0.25);
+      padding: 5px 12px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .kali-btn:hover {
+      background: rgba(0,245,255,0.15);
+      box-shadow: 0 0 12px rgba(0,245,255,0.2);
+    }
+
+    .kali-btn::before { content: '$ '; opacity: 0.5; }
+
+    /* Kali special cards */
+    .tool-card.kali-card { --card-accent: #00ff88; }
+    .tool-card.kali-card .card-name { color: var(--green); }
+
+    /* ---- KALI MODAL ---- */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: var(--bg3);
+      border: 1px solid rgba(0,245,255,0.25);
+      border-radius: 8px;
+      width: 90%;
+      max-width: 640px;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: 0 0 60px rgba(0,245,255,0.1), 0 30px 60px rgba(0,0,0,0.6);
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px;
+      border-bottom: 1px solid rgba(0,245,255,0.12);
+      position: sticky;
+      top: 0;
+      background: var(--bg3);
+    }
+
+    .modal-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.8rem;
+      color: var(--green);
+      letter-spacing: 0.15em;
+    }
+
+    .modal-close {
+      background: none;
+      border: 1px solid rgba(255,255,255,0.15);
+      color: var(--text-dim);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      padding: 4px 10px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .modal-close:hover { border-color: var(--red); color: var(--red); }
+
+    .modal-body { padding: 24px; }
+
+    .modal-tool-name {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-bright);
+      margin-bottom: 6px;
+    }
+
+    .modal-desc {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      line-height: 1.7;
+      margin-bottom: 20px;
+    }
+
+    .cmd-section { margin-bottom: 20px; }
+
+    .cmd-label {
+      font-size: 0.6rem;
+      color: var(--cyan);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .cmd-block {
+      background: rgba(0,0,0,0.5);
+      border: 1px solid rgba(0,245,255,0.12);
+      border-radius: 4px;
+      padding: 14px 16px;
+      position: relative;
+    }
+
+    .cmd-block code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--green);
+      line-height: 1.9;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .cmd-block code .prompt { color: var(--cyan); opacity: 0.7; }
+    .cmd-block code .comment { color: var(--text-dim); }
+
+    .copy-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.55rem;
+      color: var(--text-dim);
+      background: rgba(0,245,255,0.05);
+      border: 1px solid rgba(0,245,255,0.15);
+      padding: 3px 8px;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .copy-btn:hover { color: var(--cyan); border-color: var(--cyan); }
+
+    /* ---- FOOTER ---- */
+    footer {
+      position: relative;
+      z-index: 10;
+      border-top: 1px solid rgba(0,245,255,0.1);
+      padding: 24px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.6rem;
+      color: var(--text-dim);
+    }
+
+    footer a { color: var(--cyan); text-decoration: none; }
+
+    .footer-logo {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.65rem;
+      color: var(--cyan);
+      letter-spacing: 0.2em;
+    }
+
+    /* ---- HIDDEN ---- */
+    .hidden { display: none !important; }
+
+    /* ---- SCROLLBAR ---- */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: rgba(0,245,255,0.2); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(0,245,255,0.4); }
+
+    /* ---- RESPONSIVE ---- */
+    @media (max-width: 768px) {
+      header { padding: 24px 20px; flex-wrap: wrap; }
+      .header-stats { display: none; }
+      .header-name { font-size: 1.4rem; }
+      .controls { padding: 12px 20px; }
+      .main { padding: 20px 20px 50px; }
+      .about-banner { margin: 16px 20px; }
+      footer { padding: 16px 20px; flex-direction: column; gap: 8px; text-align: center; }
+      .card-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo-wrap">
+    <img id="logo-img" src="" alt="Luis García InfoSec">
+  </div>
+  <div class="header-info">
+    <div class="header-tag">// Analista Forense Digital &amp; OSINT Researcher</div>
+    <div class="header-name">LUIS <span>GARCÍA</span></div>
+    <div class="header-title">DFIR · OSINT · Cyber Intelligence · @LuisGarcia-InfoSec</div>
+    <div class="header-links">
+      <a href="https://www.linkedin.com/in/luis-garc%C3%ADa-8138762b6/" target="_blank">LinkedIn</a>
+      <a href="https://www.youtube.com/@LuisGarcia-InfoSec" target="_blank">YouTube</a>
+      <a href="https://proyects-luis.netlify.app/" target="_blank">Portfolio</a>
+      <a href="https://github.com/luisgarcia-infosec" target="_blank">GitHub</a>
+    </div>
+  </div>
+  <div class="header-stats">
+    <div class="stat-num" id="total-count">70+</div>
+    <div class="stat-label">herramientas</div>
+  </div>
+</header>
+
+<!-- ABOUT -->
+<div class="about-banner">
+  <p>
+    <strong>// ARSENAL OSINT PROFESIONAL</strong> — Recopilación curada de herramientas para investigaciones digitales, ciberinteligencia y análisis forense.
+    Cada recurso fue seleccionado por su utilidad real en campo. Las herramientas están organizadas por categoría, con indicadores de
+    <strong style="color:var(--green)">GRATIS</strong>, <strong style="color:var(--yellow)">PAGO</strong> o <strong style="color:var(--purple)">FREEMIUM</strong>.
+    Las secciones de <strong style="color:var(--cyan)">KALI LINUX</strong> incluyen comandos de instalación y uso.
+  </p>
+</div>
+
+<!-- CONTROLS -->
+<div class="controls">
+  <div class="controls-inner">
+    <div class="search-wrap">
+      <input type="text" id="searchInput" placeholder="buscar herramienta...">
+    </div>
+    <div class="filters">
+      <button class="filter-btn active" data-cat="all">TODO</button>
+      <button class="filter-btn" data-cat="personas">PERSONAS</button>
+      <button class="filter-btn" data-cat="emails">EMAILS</button>
+      <button class="filter-btn" data-cat="redes">REDES</button>
+      <button class="filter-btn" data-cat="imagenes">IMÁGENES</button>
+      <button class="filter-btn" data-cat="geo">GEO &amp; IP</button>
+      <button class="filter-btn" data-cat="dominios">DOMINIOS</button>
+      <button class="filter-btn" data-cat="motores">MOTORES</button>
+      <button class="filter-btn" data-cat="ia">IA</button>
+      <button class="filter-btn" data-cat="kali">🐧 KALI</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<main class="main" id="main">
+
+  <!-- PERSONAS -->
+  <div class="section" data-section="personas">
+    <div class="section-header">
+      <div class="section-icon">👤</div>
+      <div class="section-title">PERSONAS &amp; IDENTIDAD</div>
+      <div class="section-line"></div>
+      <div class="section-count">11 tools</div>
+    </div>
+    <div class="card-grid">
+
+      <div class="tool-card" data-cat="personas" data-name="google lens">
+        <div class="card-top">
+          <div class="card-name">Google Lens</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span></div>
+        </div>
+        <div class="card-desc">Búsqueda visual inversa de imágenes, reconocimiento de objetos, textos y rostros directamente desde una foto. Ideal para identificar personas o lugares.</div>
+        <div class="card-footer">
+          <a href="https://lens.google.com" target="_blank" class="card-link">lens.google.com</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="personas" data-name="fotoforensics análisis forense">
+        <div class="card-top">
+          <div class="card-name">FotoForensics</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span></div>
+        </div>
+        <div class="card-desc">Análisis forense de imágenes para detectar manipulaciones digitales, metadatos ocultos y niveles de compresión JPEG. Imprescindible en investigaciones.</div>
+        <div class="card-footer">
+          <a href="https://fotoforensics.com" target="_blank" class="card-link">fotoforensics.com</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="personas" data-name="thatsthem personas nombre email ip">
+        <div class="card-top">
+          <div class="card-name">That'sThem</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span></div>
+        </div>
+        <div class="card-desc">Busca personas por nombre, email, número de teléfono, dirección IP o dirección postal (enfocado en EE.UU.). Muy útil para cruzar datos.</div>
+        <div class="card-footer">
+          <a href="https://thatsthem.com" target="_blank" class="card-link">thatsthem.com</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="personas" data-name="peekyou redes sociales persona">
+        <div class="card-top">
+          <div class="card-name">PeekYou</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span></div>
+        </div>
+        <div class="card-desc">Agrega datos públicos de personas: redes sociales, noticias, menciones en la web, usernames. Útil para construir un perfil OSINT básico.</div>
+        <div class="card-footer">
+          <a href="https://peekyou.com" target="_blank" class="card-link">peekyou.com</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="personas" data-name="social catfish identidad verificación">
+        <div class="card-top">
+          <div class="card-name">Social Catfish</div>
+          <div class="badges"><span class="badge badge-paid">PAGO</span></div>
+        </div>
+        <div class="card-desc">Verificación de identidades en redes sociales. Detecta perfiles falsos, catfishing y fraudes en línea. Permite buscar por foto, nombre o username.</div>
+        <div class="card-footer">
+          <a href="https://socialcatfish.com" target="_blank" class="card-link">socialcatfish.com</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="personas" data-name="webmii persona noticias videos">
+        <div class="card-top">
+          <div class="card-name">Webmii</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span></div>
+        </div>
+        <div class="card-desc">Rastrea menciones de personas en noticias, videos, blogs y redes sociales. Calcula un índice de visibilidad en la web.</div>
+        <div class="card-footer">
+          <a href="https://webmii.com" target="_blank" class="card-link">webmii.com</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="personas" data-name="facecheck reconocimiento facial redes">
+        <div class="card-top">
+          <div class="card-name">FaceCheck.id</div>
+          <div class="badges"><span class="badge badge-freemium">FREEMIUM</span></div>
+        </div>
+        <div class="card-desc">Reconocimiento facial inverso que busca rostros en redes sociales y la web pública. Muy útil para identificar perfiles anónimos.</div>
+        <div class="card-footer">
+          <a href="https://facecheck.id" target="_blank" class="card-link">facecheck.id</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="personas" data-name="peoplefinders registros públicos">
+        <div class="card-top">
+          <div class="card-name">PeopleFinders</div>
+          <div class="badges"><span class="badge badge-paid">PAGO</span></div>
+        </div>
+        <div class="card-desc">Accede a registros públicos de personas en EE.UU.: antecedentes, direcciones, familiares, teléfonos. Útil para investigaciones internacionales.</div>
+        <div class="card-footer">
+          <a href="https://beta.peoplefinders.com" target="_blank" class="card-link">peoplefinders.com</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="personas" data-name="zabasearch persona eeuu registros">
+        <div class="card-top">
+          <div class="card-name">ZabaSearch</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span></div>
+        </div>
+        <div class="card-desc">Motor de búsqueda de personas en EE.UU. Devuelve registros públicos, direcciones y números de teléfono sin necesidad de registro.</div>
+        <div class="card-footer">
+          <a href="https://www.zabasearch.com" target="_blank" class="card-link">zabasearch.com</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="personas" data-name="dniweb argentina persona dni">
+        <div class="card-top">
+          <div class="card-name">DNIweb</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span><span class="badge badge-ar">ARG</span></div>
+        </div>
+        <div class="card-desc">Base de datos de personas de Argentina. Permite consultar información vinculada a datos personales públicos. Acceso limitado según disponibilidad.</div>
+        <div class="card-footer">
+          <a href="https://dniweb.com.ar" target="_blank" class="card-link">dniweb.com.ar</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="personas" data-name="nombrerut chile argentina identidad">
+        <div class="card-top">
+          <div class="card-name">NombreRut</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span><span class="badge badge-ar">LATAM</span></div>
+        </div>
+        <div class="card-desc">Consulta de identidad y vínculos públicos útil para Argentina y Chile. Permite cruzar nombre con datos públicos disponibles.</div>
+        <div class="card-footer">
+          <a href="https://nombrerut.com" target="_blank" class="card-link">nombrerut.com</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- EMAILS -->
+  <div class="section" data-section="emails">
+    <div class="section-header">
+      <div class="section-icon">📧</div>
+      <div class="section-title">EMAILS &amp; CREDENCIALES</div>
+      <div class="section-line"></div>
+      <div class="section-count">7 tools</div>
+    </div>
+    <div class="card-grid">
+
+      <div class="tool-card" data-cat="emails" data-name="have i been pwned filtración breach">
+        <div class="card-top">
+          <div class="card-name">Have I Been Pwned</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span></div>
+        </div>
+        <div class="card-desc">El referente mundial para verificar si un email o contraseña apareció en filtraciones de datos conocidas. Más de 12 mil millones de registros indexados.</div>
+        <div class="card-footer">
+          <a href="https://haveibeenpwned.com" target="_blank" class="card-link">haveibeenpwned.com</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="emails" data-name="emailrep reputación correo riesgo">
+        <div class="card-top">
+          <div class="card-name">EmailRep.io</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span></div>
+        </div>
+        <div class="card-desc">Analiza la reputación de un correo electrónico: nivel de riesgo, historial de actividad sospechosa, si está asociado a dominios temporales o spam.</div>
+        <div class="card-footer">
+          <a href="https://emailrep.io" target="_blank" class="card-link">emailrep.io</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="emails" data-name="hunter io dominio email encontrar">
+        <div class="card-top">
+          <div class="card-name">Hunter.io</div>
+          <div class="badges"><span class="badge badge-freemium">FREEMIUM</span></div>
+        </div>
+        <div class="card-desc">Encuentra direcciones de email asociadas a un dominio o empresa. También verifica si un correo existe y tiene actividad real.</div>
+        <div class="card-footer">
+          <a href="https://hunter.io" target="_blank" class="card-link">hunter.io</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="emails" data-name="leakcheck filtración credenciales">
+        <div class="card-top">
+          <div class="card-name">LeakCheck.io</div>
+          <div class="badges"><span class="badge badge-freemium">FREEMIUM</span></div>
+        </div>
+        <div class="card-desc">Consulta si un correo, username o contraseña aparece en bases de datos filtradas. Ofrece más detalles que HIBP sobre la fuente de la filtración.</div>
+        <div class="card-footer">
+          <a href="https://leakcheck.io" target="_blank" class="card-link">leakcheck.io</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="emails" data-name="dehashed motor búsqueda datos filtrados">
+        <div class="card-top">
+          <div class="card-name">Dehashed</div>
+          <div class="badges"><span class="badge badge-paid">PAGO</span></div>
+        </div>
+        <div class="card-desc">Motor de búsqueda avanzado en bases de datos filtradas. Permite buscar por email, nombre, IP, username, dirección o número de teléfono.</div>
+        <div class="card-footer">
+          <a href="https://www.dehashed.com" target="_blank" class="card-link">dehashed.com</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="emails" data-name="verify email validar correo">
+        <div class="card-top">
+          <div class="card-name">Verify Email Address</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span></div>
+        </div>
+        <div class="card-desc">Verifica si una dirección de correo electrónico es válida, tiene un servidor MX activo y puede recibir emails. Sin registro requerido.</div>
+        <div class="card-footer">
+          <a href="https://verifyemailaddress.org" target="_blank" class="card-link">verifyemailaddress.org</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="emails" data-name="google dorks operadores avanzados hacking">
+        <div class="card-top">
+          <div class="card-name">Google Hacking DB (Exploit-DB)</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span></div>
+        </div>
+        <div class="card-desc">Base de datos de Google Dorks prearmados para encontrar información expuesta: paneles admin, archivos sensibles, cámaras, credenciales y más.</div>
+        <div class="card-footer">
+          <a href="https://www.exploit-db.com/google-hacking-database" target="_blank" class="card-link">exploit-db.com/ghdb</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- REDES SOCIALES -->
+  <div class="section" data-section="redes">
+    <div class="section-header">
+      <div class="section-icon">📱</div>
+      <div class="section-title">REDES SOCIALES</div>
+      <div class="section-line"></div>
+      <div class="section-count">8 tools</div>
+    </div>
+    <div class="card-grid">
+
+      <div class="tool-card" data-cat="redes" data-name="whopostedwhat facebook publicaciones historial">
+        <div class="card-top">
+          <div class="card-name">WhoPostedWhat</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span></div>
+        </div>
+        <div class="card-desc">Búsqueda histórica avanzada de publicaciones en Facebook por palabras clave, fecha y ubicación. Sin necesidad de estar logueado.</div>
+        <div class="card-footer">
+          <a href="https://whopostedwhat.com" target="_blank" class="card-link">whopostedwhat.com</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="redes" data-name="storysaver instagram historias descargar">
+        <div class="card-top">
+          <div class="card-name">StorySaver.net</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span></div>
+        </div>
+        <div class="card-desc">Descarga historias, reels y fotos de Instagram sin necesidad de seguir al usuario. Útil para preservar evidencia antes de que expire.</div>
+        <div class="card-footer">
+          <a href="https://storysaver.net" target="_blank" class="card-link">storysaver.net</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="redes" data-name="inflact instagram osint perfil">
+        <div class="card-top">
+          <div class="card-name">Inflact</div>
+          <div class="badges"><span class="badge badge-freemium">FREEMIUM</span></div>
+        </div>
+        <div class="card-desc">Herramienta OSINT enfocada en Instagram: analiza perfiles, hashtags, seguidores y publicaciones. Acceso sin cuenta a funciones básicas.</div>
+        <div class="card-footer">
+          <a href="https://inflact.com/tools/profile-analyzer/" target="_blank" class="card-link">inflact.com</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="redes" data-name="pikuki instagram ver perfil anónimo">
+        <div class="card-top">
+          <div class="card-name">Pikuki</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span></div>
+        </div>
+        <div class="card-desc">Visualiza perfiles, posts y stories de Instagram de forma anónima sin necesidad de tener cuenta. Interfaz limpia y directa.</div>
+        <div class="card-footer">
+          <a href="https://www.pikuki.com" target="_blank" class="card-link">pikuki.com</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="redes" data-name="twstalker twitter x análisis perfil">
+        <div class="card-top">
+          <div class="card-name">Twstalker</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span></div>
+        </div>
+        <div class="card-desc">Exploración OSINT de perfiles de Twitter/X: tweets, seguidores, seguidos y actividad reciente sin necesidad de iniciar sesión.</div>
+        <div class="card-footer">
+          <a href="https://twstalker.com" target="_blank" class="card-link">twstalker.com</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="redes" data-name="snoopreport instagram monitoreo actividad">
+        <div class="card-top">
+          <div class="card-name">Snoopreport</div>
+          <div class="badges"><span class="badge badge-paid">PAGO</span></div>
+        </div>
+        <div class="card-desc">Monitorea la actividad de cuentas de Instagram: a qué fotos les da like, qué cuentas sigue recientemente. Servicio de suscripción.</div>
+        <div class="card-footer">
+          <a href="https://snoopreport.com" target="_blank" class="card-link">snoopreport.com</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="redes" data-name="search4faces reconocimiento facial vkontakte">
+        <div class="card-top">
+          <div class="card-name">Search4Faces</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span></div>
+        </div>
+        <div class="card-desc">Búsqueda facial inversa en redes sociales rusas (VK, Odnoklassniki) y bases de datos públicas. Alternativa a FindClone para identificar perfiles.</div>
+        <div class="card-footer">
+          <a href="https://search4faces.com" target="_blank" class="card-link">search4faces.com</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="redes" data-name="xcancel twitter x sin javascript privacidad">
+        <div class="card-top">
+          <div class="card-name">xCancel (Twitter/X Proxy)</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span></div>
+        </div>
+        <div class="card-desc">Instancia proxy para ver contenido de Twitter/X sin JavaScript y de forma anónima. Alternativa funcional a Nitter para investigaciones.</div>
+        <div class="card-footer">
+          <a href="https://xcancel.com" target="_blank" class="card-link">xcancel.com</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- IMÁGENES -->
+  <div class="section" data-section="imagenes">
+    <div class="section-header">
+      <div class="section-icon">📸</div>
+      <div class="section-title">IMÁGENES &amp; METADATOS</div>
+      <div class="section-line"></div>
+      <div class="section-count">8 tools</div>
+    </div>
+    <div class="card-grid">
+
+      <div class="tool-card" data-cat="imagenes" data-name="exif regex metadatos foto imagen">
+        <div class="card-top">
+          <div class="card-name">EXIF Regex</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span></div>
+        </div>
+        <div class="card-desc">Extrae y lee metadatos EXIF de imágenes: coordenadas GPS, modelo de cámara, fecha exacta de captura, software de edición utilizado.</div>
+        <div class="card-footer">
+          <a href="https://exif.regex.info" target="_blank" class="card-link">exif.regex.info</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="imagenes" data-name="29a.ch photo forensics análisis imagen">
+        <div class="card-top">
+          <div class="card-name">29a.ch Photo Forensics</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span></div>
+        </div>
+        <div class="card-desc">Suite completa de análisis forense visual: ELA (Error Level Analysis), mapa de ruido, detección de clonado, visualización de metadatos y más.</div>
+        <div class="card-footer">
+          <a href="https://29a.ch/photo-forensics/" target="_blank" class="card-link">29a.ch/photo-forensics</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="imagenes" data-name="yandex imágenes búsqueda inversa rostros">
+        <div class="card-top">
+          <div class="card-name">Yandex Imágenes</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span></div>
+        </div>
+        <div class="card-desc">El motor de búsqueda inversa de imágenes más potente para reconocimiento facial. Encuentra coincidencias que Google o TinEye no detectan.</div>
+        <div class="card-footer">
+          <a href="https://yandex.com/images" target="_blank" class="card-link">yandex.com/images</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="imagenes" data-name="tineye búsqueda inversa imagen base datos">
+        <div class="card-top">
+          <div class="card-name">TinEye</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span></div>
+        </div>
+        <div class="card-desc">Búsqueda inversa de imágenes en su propia base de datos con más de 60 mil millones de imágenes indexadas. Detecta versiones modificadas.</div>
+        <div class="card-footer">
+          <a href="https://tineye.com" target="_blank" class="card-link">tineye.com</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="imagenes" data-name="google images búsqueda inversa">
+        <div class="card-top">
+          <div class="card-name">Google Images</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span></div>
+        </div>
+        <div class="card-desc">Búsqueda inversa de imágenes en el motor más grande del mundo. Arrastrá una imagen o pegá la URL para encontrar su origen y versiones similares.</div>
+        <div class="card-footer">
+          <a href="https://images.google.com" target="_blank" class="card-link">images.google.com</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="imagenes" data-name="pimeyes reconocimiento facial web">
+        <div class="card-top">
+          <div class="card-name">PimEyes</div>
+          <div class="badges"><span class="badge badge-paid">PAGO</span></div>
+        </div>
+        <div class="card-desc">Motor de búsqueda facial inversa que rastrea rostros en toda la web pública. Uno de los más precisos disponibles. Resultados detallados con suscripción.</div>
+        <div class="card-footer">
+          <a href="https://pimeyes.com" target="_blank" class="card-link">pimeyes.com</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="imagenes" data-name="metadata2go metadatos archivo imagen">
+        <div class="card-top">
+          <div class="card-name">Metadata2Go</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span></div>
+        </div>
+        <div class="card-desc">Lee metadatos de múltiples tipos de archivos: imágenes, videos, documentos PDF, Word, etc. Sin necesidad de instalar software.</div>
+        <div class="card-footer">
+          <a href="https://metadata2go.com" target="_blank" class="card-link">metadata2go.com</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="imagenes" data-name="face++ análisis facial emociones edad">
+        <div class="card-top">
+          <div class="card-name">Face++</div>
+          <div class="badges"><span class="badge badge-freemium">FREEMIUM</span></div>
+        </div>
+        <div class="card-desc">Plataforma de análisis facial con IA: detecta emociones, estima edad, género y analiza múltiples rostros en una imagen de forma simultánea.</div>
+        <div class="card-footer">
+          <a href="https://www.faceplusplus.com/face-detection/" target="_blank" class="card-link">faceplusplus.com</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- GEO & IP -->
+  <div class="section" data-section="geo">
+    <div class="section-header">
+      <div class="section-icon">📍</div>
+      <div class="section-title">GEOLOCALIZACIÓN &amp; IP</div>
+      <div class="section-line"></div>
+      <div class="section-count">6 tools</div>
+    </div>
+    <div class="card-grid">
+
+      <div class="tool-card" data-cat="geo" data-name="ipinfo ip geolocalización información">
+        <div class="card-top">
+          <div class="card-name">IPInfo.io</div>
+          <div class="badges"><span class="badge badge-freemium">FREEMIUM</span></div>
+        </div>
+        <div class="card-desc">Información completa de una IP: ubicación geográfica, ASN, ISP, organización, y si es proxy/VPN/Tor. API disponible para automatización.</div>
+        <div class="card-footer">
+          <a href="https://ipinfo.io" target="_blank" class="card-link">ipinfo.io</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="geo" data-name="ip-api geolocalización ip gratis">
+        <div class="card-top">
+          <div class="card-name">IP-API</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span></div>
+        </div>
+        <div class="card-desc">API de geolocalización gratuita que devuelve país, ciudad, ISP, lat/lon y zona horaria de cualquier IP. Perfecta para integrar en scripts OSINT.</div>
+        <div class="card-footer">
+          <a href="https://ip-api.com" target="_blank" class="card-link">ip-api.com</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="geo" data-name="db-ip base datos ip ubicación">
+        <div class="card-top">
+          <div class="card-name">DB-IP</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span></div>
+        </div>
+        <div class="card-desc">Base de datos de geolocalización IP con información de ubicación, tipo de conexión, ISP y autonomía del sistema. Descargable para uso offline.</div>
+        <div class="card-footer">
+          <a href="https://db-ip.com" target="_blank" class="card-link">db-ip.com</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="geo" data-name="geoiptool mapa ip localización">
+        <div class="card-top">
+          <div class="card-name">GeoIPTool</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span></div>
+        </div>
+        <div class="card-desc">Visualiza en un mapa la ubicación geográfica de una IP. Muestra coordenadas exactas, ciudad, país y proveedor de internet.</div>
+        <div class="card-footer">
+          <a href="https://geoiptool.com" target="_blank" class="card-link">geoiptool.com</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="geo" data-name="keycdn geo herramienta ip ubicación">
+        <div class="card-top">
+          <div class="card-name">KeyCDN Geo Tool</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span></div>
+        </div>
+        <div class="card-desc">Herramienta rápida de geolocalización de IPs. Muestra ciudad, país, código postal, ISP y coordenadas. Sin registro, respuesta inmediata.</div>
+        <div class="card-footer">
+          <a href="https://tools.keycdn.com/geo" target="_blank" class="card-link">tools.keycdn.com/geo</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="geo" data-name="viewdns herramientas dns ip whois">
+        <div class="card-top">
+          <div class="card-name">ViewDNS.info</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span></div>
+        </div>
+        <div class="card-desc">Suite completa de herramientas DNS e IP: reverse IP, WHOIS, ping, traceroute, DNS lookup, port scanner, geolocalización y más. Todo en un solo lugar.</div>
+        <div class="card-footer">
+          <a href="https://viewdns.info" target="_blank" class="card-link">viewdns.info</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- DOMINIOS -->
+  <div class="section" data-section="dominios">
+    <div class="section-header">
+      <div class="section-icon">🌐</div>
+      <div class="section-title">DOMINIOS, DNS &amp; WHOIS</div>
+      <div class="section-line"></div>
+      <div class="section-count">9 tools</div>
+    </div>
+    <div class="card-grid">
+
+      <div class="tool-card" data-cat="dominios" data-name="whois lookup dominio registro">
+        <div class="card-top">
+          <div class="card-name">Whois Lookup (who.is)</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span></div>
+        </div>
+        <div class="card-desc">Consulta WHOIS de dominios: propietario, fecha de registro, vencimiento, nameservers y datos de contacto. Interfaz limpia y rápida.</div>
+        <div class="card-footer">
+          <a href="https://who.is" target="_blank" class="card-link">who.is</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="dominios" data-name="domaintools whois historial dominio">
+        <div class="card-top">
+          <div class="card-name">DomainTools WHOIS</div>
+          <div class="badges"><span class="badge badge-freemium">FREEMIUM</span></div>
+        </div>
+        <div class="card-desc">WHOIS avanzado con historial de cambios del dominio, IPs relacionadas, subdominios y fingerprinting. Referente en investigaciones de dominios.</div>
+        <div class="card-footer">
+          <a href="https://whois.domaintools.com" target="_blank" class="card-link">whois.domaintools.com</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="dominios" data-name="whoxy whois historial dominio antiguo">
+        <div class="card-top">
+          <div class="card-name">Whoxy</div>
+          <div class="badges"><span class="badge badge-freemium">FREEMIUM</span></div>
+        </div>
+        <div class="card-desc">WHOIS con historial completo de un dominio: quién lo registró antes, cambios de propietario, fechas. Excelente para investigaciones de fraude.</div>
+        <div class="card-footer">
+          <a href="https://www.whoxy.com" target="_blank" class="card-link">whoxy.com</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="dominios" data-name="dnstwister phishing dominio similar typosquatting">
+        <div class="card-top">
+          <div class="card-name">DNSTwister</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span></div>
+        </div>
+        <div class="card-desc">Detecta dominios similares al objetivo: typosquatting, homografía, combosquatting. Fundamental para identificar campañas de phishing activas.</div>
+        <div class="card-footer">
+          <a href="https://dnstwister.report" target="_blank" class="card-link">dnstwister.report</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="dominios" data-name="crt.sh certificados ssl tls">
+        <div class="card-top">
+          <div class="card-name">crt.sh</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span></div>
+        </div>
+        <div class="card-desc">Busca en el Certificate Transparency Log para encontrar todos los certificados SSL emitidos para un dominio, revelando subdominios ocultos.</div>
+        <div class="card-footer">
+          <a href="https://crt.sh" target="_blank" class="card-link">crt.sh</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="dominios" data-name="urlscan escaneo url página web análisis">
+        <div class="card-top">
+          <div class="card-name">URLScan.io</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span></div>
+        </div>
+        <div class="card-desc">Escanea URLs y analiza el comportamiento completo de una página: peticiones HTTP, scripts cargados, cookies, capturas de pantalla y tecnologías detectadas.</div>
+        <div class="card-footer">
+          <a href="https://urlscan.io" target="_blank" class="card-link">urlscan.io</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="dominios" data-name="builtwith tecnologías web stack">
+        <div class="card-top">
+          <div class="card-name">BuiltWith</div>
+          <div class="badges"><span class="badge badge-freemium">FREEMIUM</span></div>
+        </div>
+        <div class="card-desc">Identifica las tecnologías usadas en cualquier sitio web: CMS, frameworks, herramientas de analytics, CDN, librerías y más. Perfecto para footprinting.</div>
+        <div class="card-footer">
+          <a href="https://builtwith.com" target="_blank" class="card-link">builtwith.com</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="dominios" data-name="netcraft hosting phishing servidor seguridad">
+        <div class="card-top">
+          <div class="card-name">Netcraft</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span></div>
+        </div>
+        <div class="card-desc">Información de hosting, historial de servidores, detección de sitios de phishing y análisis de riesgo de URLs. Muy usado por equipos de seguridad.</div>
+        <div class="card-footer">
+          <a href="https://www.netcraft.com" target="_blank" class="card-link">netcraft.com</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="dominios" data-name="google transparency report certificados https">
+        <div class="card-top">
+          <div class="card-name">Google Transparency Report</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span></div>
+        </div>
+        <div class="card-desc">Permite buscar certificados HTTPS emitidos para cualquier dominio, complementando la información de crt.sh para investigaciones de infraestructura.</div>
+        <div class="card-footer">
+          <a href="https://transparencyreport.google.com/https/certificates" target="_blank" class="card-link">transparencyreport.google.com</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MOTORES -->
+  <div class="section" data-section="motores">
+    <div class="section-header">
+      <div class="section-icon">🔎</div>
+      <div class="section-title">MOTORES &amp; BÚSQUEDA AVANZADA</div>
+      <div class="section-line"></div>
+      <div class="section-count">9 tools</div>
+    </div>
+    <div class="card-grid">
+
+      <div class="tool-card" data-cat="motores" data-name="shodan dispositivos internet iot">
+        <div class="card-top">
+          <div class="card-name">Shodan</div>
+          <div class="badges"><span class="badge badge-freemium">FREEMIUM</span></div>
+        </div>
+        <div class="card-desc">El motor de búsqueda de dispositivos conectados a internet: routers, cámaras, servidores, IoT. Permite encontrar servicios expuestos y versiones vulnerables.</div>
+        <div class="card-footer">
+          <a href="https://www.shodan.io" target="_blank" class="card-link">shodan.io</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="motores" data-name="censys infraestructura ssl certificados">
+        <div class="card-top">
+          <div class="card-name">Censys</div>
+          <div class="badges"><span class="badge badge-freemium">FREEMIUM</span></div>
+        </div>
+        <div class="card-desc">Indexa certificados SSL/TLS e infraestructura de internet. Permite encontrar activos expuestos de una organización y relacionar IPs con dominios.</div>
+        <div class="card-footer">
+          <a href="https://search.censys.io" target="_blank" class="card-link">search.censys.io</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="motores" data-name="intelx inteligencia dark web datos filtrados">
+        <div class="card-top">
+          <div class="card-name">IntelligenceX (IntelX)</div>
+          <div class="badges"><span class="badge badge-freemium">FREEMIUM</span></div>
+        </div>
+        <div class="card-desc">Busca en data filtrada, dark web, Tor, servicios de paste y archivos históricos. Potente para encontrar credenciales, documentos y conversaciones expuestas.</div>
+        <div class="card-footer">
+          <a href="https://intelx.io" target="_blank" class="card-link">intelx.io</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="motores" data-name="onyphe ciberinteligencia sensores red">
+        <div class="card-top">
+          <div class="card-name">Onyphe</div>
+          <div class="badges"><span class="badge badge-freemium">FREEMIUM</span></div>
+        </div>
+        <div class="card-desc">Motor de ciberinteligencia que indexa datos de sensores de red globales: IPs, puertos abiertos, geolocalización, amenazas activas y más.</div>
+        <div class="card-footer">
+          <a href="https://www.onyphe.io" target="_blank" class="card-link">onyphe.io</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="motores" data-name="wigle wifi redes mapa">
+        <div class="card-top">
+          <div class="card-name">WiGLE</div>
+          <div class="badges"><span class="badge badge-freemium">FREEMIUM</span></div>
+        </div>
+        <div class="card-desc">Mapa colaborativo de redes Wi-Fi del mundo entero. Permite buscar puntos de acceso por SSID, BSSID o ubicación geográfica.</div>
+        <div class="card-footer">
+          <a href="https://wigle.net" target="_blank" class="card-link">wigle.net</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="motores" data-name="publicwww código fuente html compartido">
+        <div class="card-top">
+          <div class="card-name">PublicWWW</div>
+          <div class="badges"><span class="badge badge-freemium">FREEMIUM</span></div>
+        </div>
+        <div class="card-desc">Busca en el código fuente HTML de millones de páginas: encuentra sitios que usan el mismo script, tracking ID, wallet de criptomonedas o fragmento de código.</div>
+        <div class="card-footer">
+          <a href="https://publicwww.com" target="_blank" class="card-link">publicwww.com</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="motores" data-name="startpage búsqueda privada anónima">
+        <div class="card-top">
+          <div class="card-name">Startpage</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span></div>
+        </div>
+        <div class="card-desc">Motor de búsqueda privado que usa resultados de Google sin rastrear al usuario. Ideal para investigar sin dejar rastro y sin personalización de resultados.</div>
+        <div class="card-footer">
+          <a href="https://www.startpage.com" target="_blank" class="card-link">startpage.com</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="motores" data-name="metager búsqueda anónima múltiples fuentes">
+        <div class="card-top">
+          <div class="card-name">MetaGer</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span></div>
+        </div>
+        <div class="card-desc">Metabuscador anónimo que agrega resultados de múltiples motores. Open source, sin rastreo. Alternativa europea y privada a los motores comerciales.</div>
+        <div class="card-footer">
+          <a href="https://www.metager.org" target="_blank" class="card-link">metager.org</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="motores" data-name="spiderfoot osint automatizado reconocimiento">
+        <div class="card-top">
+          <div class="card-name">SpiderFoot HX</div>
+          <div class="badges"><span class="badge badge-freemium">FREEMIUM</span></div>
+        </div>
+        <div class="card-desc">Plataforma de reconocimiento OSINT automatizado. Integra más de 200 fuentes de datos para construir un perfil completo de un objetivo de forma automática.</div>
+        <div class="card-footer">
+          <a href="https://www.spiderfoot.net" target="_blank" class="card-link">spiderfoot.net</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- IA -->
+  <div class="section" data-section="ia">
+    <div class="section-header">
+      <div class="section-icon">🧠</div>
+      <div class="section-title">IA &amp; ANÁLISIS AUTOMATIZADO</div>
+      <div class="section-line"></div>
+      <div class="section-count">5 tools</div>
+    </div>
+    <div class="card-grid">
+
+      <div class="tool-card" data-cat="ia" data-name="chatgpt ia análisis inteligencia artificial">
+        <div class="card-top">
+          <div class="card-name">ChatGPT (OpenAI)</div>
+          <div class="badges"><span class="badge badge-freemium">FREEMIUM</span></div>
+        </div>
+        <div class="card-desc">Análisis de información, síntesis de datos OSINT, generación de hipótesis investigativas y correlación de patrones. Útil para procesar grandes cantidades de texto.</div>
+        <div class="card-footer">
+          <a href="https://chat.openai.com" target="_blank" class="card-link">chat.openai.com</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="ia" data-name="claude anthropic ia análisis forense">
+        <div class="card-top">
+          <div class="card-name">Claude (Anthropic)</div>
+          <div class="badges"><span class="badge badge-freemium">FREEMIUM</span></div>
+        </div>
+        <div class="card-desc">Asistente de IA con excelente razonamiento para análisis forense: cruzar datos, redactar informes periciales, interpretar evidencia técnica y construir timelines.</div>
+        <div class="card-footer">
+          <a href="https://claude.ai" target="_blank" class="card-link">claude.ai</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="ia" data-name="copilot microsoft ia búsquedas">
+        <div class="card-top">
+          <div class="card-name">Microsoft Copilot</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span></div>
+        </div>
+        <div class="card-desc">IA de Microsoft integrada con búsqueda web en tiempo real. Permite hacer preguntas con contexto actualizado y obtener resúmenes de investigaciones en curso.</div>
+        <div class="card-footer">
+          <a href="https://copilot.microsoft.com" target="_blank" class="card-link">copilot.microsoft.com</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="ia" data-name="pimeyes reconocimiento facial ia web">
+        <div class="card-top">
+          <div class="card-name">PimEyes (Facial AI)</div>
+          <div class="badges"><span class="badge badge-paid">PAGO</span></div>
+        </div>
+        <div class="card-desc">Motor de búsqueda facial con IA que rastrea cualquier rostro en toda la web indexada. Resultados de alta precisión con contexto de la página donde aparece.</div>
+        <div class="card-footer">
+          <a href="https://pimeyes.com" target="_blank" class="card-link">pimeyes.com</a>
+        </div>
+      </div>
+
+      <div class="tool-card" data-cat="ia" data-name="ghunt google osint gmail">
+        <div class="card-top">
+          <div class="card-name">GHunt (Google OSINT)</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span></div>
+        </div>
+        <div class="card-desc">Herramienta OSINT para extraer información pública de cuentas de Google a partir de un email o Google ID: nombre, foto, servicios vinculados, mapas, reseñas.</div>
+        <div class="card-footer">
+          <a href="https://github.com/mxrch/GHunt" target="_blank" class="card-link">github.com/mxrch/GHunt</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- KALI LINUX -->
+  <div class="section" data-section="kali">
+    <div class="section-header">
+      <div class="section-icon">🐧</div>
+      <div class="section-title">KALI LINUX — TOOLS</div>
+      <div class="section-line"></div>
+      <div class="section-count">11 tools</div>
+    </div>
+    <div class="card-grid">
+
+      <div class="tool-card kali-card" data-cat="kali" data-name="theharvester recolección emails subdominios">
+        <div class="card-top">
+          <div class="card-name">theHarvester</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span><span class="badge badge-kali">KALI</span></div>
+        </div>
+        <div class="card-desc">Recolecta emails, subdominios, nombres de empleados, IPs y hosts asociados a un dominio usando múltiples fuentes públicas: Google, Bing, Shodan, LinkedIn, etc.</div>
+        <div class="card-footer">
+          <button class="kali-btn" onclick="openModal('theharvester')">ver comandos</button>
+        </div>
+      </div>
+
+      <div class="tool-card kali-card" data-cat="kali" data-name="phoneinfoga números teléfono osint">
+        <div class="card-top">
+          <div class="card-name">PhoneInfoga</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span><span class="badge badge-kali">KALI</span></div>
+        </div>
+        <div class="card-desc">Analiza números telefónicos usando fuentes OSINT públicas: operadora, país, tipo de número (móvil/fijo), y búsquedas en Google, Numverify, etc.</div>
+        <div class="card-footer">
+          <button class="kali-btn" onclick="openModal('phoneinfoga')">ver comandos</button>
+        </div>
+      </div>
+
+      <div class="tool-card kali-card" data-cat="kali" data-name="exiftool metadatos exif imagen archivo">
+        <div class="card-top">
+          <div class="card-name">ExifTool</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span><span class="badge badge-kali">KALI</span></div>
+        </div>
+        <div class="card-desc">Extrae, edita y elimina metadatos de todo tipo de archivos: imágenes, videos, PDFs y documentos. Revelá coordenadas GPS, fecha y cámara usada.</div>
+        <div class="card-footer">
+          <button class="kali-btn" onclick="openModal('exiftool')">ver comandos</button>
+        </div>
+      </div>
+
+      <div class="tool-card kali-card" data-cat="kali" data-name="holehe email registro sitios">
+        <div class="card-top">
+          <div class="card-name">Holehe</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span><span class="badge badge-kali">KALI</span></div>
+        </div>
+        <div class="card-desc">Verifica si un email está registrado en más de 120 sitios conocidos (Instagram, Twitter, GitHub, PayPal, etc.) sin enviar emails ni activar alertas.</div>
+        <div class="card-footer">
+          <button class="kali-btn" onclick="openModal('holehe')">ver comandos</button>
+        </div>
+      </div>
+
+      <div class="tool-card kali-card" data-cat="kali" data-name="sherlock username usuario redes sociales">
+        <div class="card-top">
+          <div class="card-name">Sherlock</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span><span class="badge badge-kali">KALI</span></div>
+        </div>
+        <div class="card-desc">Busca un nombre de usuario en más de 400 plataformas simultáneamente: redes sociales, foros, sitios de gaming, GitHub y más. Fundamental en OSINT de personas.</div>
+        <div class="card-footer">
+          <button class="kali-btn" onclick="openModal('sherlock')">ver comandos</button>
+        </div>
+      </div>
+
+      <div class="tool-card kali-card" data-cat="kali" data-name="maltego visualización relaciones grafos">
+        <div class="card-top">
+          <div class="card-name">Maltego</div>
+          <div class="badges"><span class="badge badge-freemium">FREEMIUM</span><span class="badge badge-kali">KALI</span></div>
+        </div>
+        <div class="card-desc">Plataforma visual de ciberinteligencia que mapea relaciones entre personas, dominios, IPs, emails y redes sociales mediante grafos interactivos.</div>
+        <div class="card-footer">
+          <button class="kali-btn" onclick="openModal('maltego')">ver comandos</button>
+        </div>
+      </div>
+
+      <div class="tool-card kali-card" data-cat="kali" data-name="recon-ng reconocimiento web osint modular">
+        <div class="card-top">
+          <div class="card-name">Recon-ng</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span><span class="badge badge-kali">KALI</span></div>
+        </div>
+        <div class="card-desc">Framework modular de reconocimiento web. Similar a Metasploit pero orientado a OSINT: módulos para WHOIS, subdominios, emails, redes sociales y más.</div>
+        <div class="card-footer">
+          <button class="kali-btn" onclick="openModal('reconng')">ver comandos</button>
+        </div>
+      </div>
+
+      <div class="tool-card kali-card" data-cat="kali" data-name="hash-identifier identificar tipo hash">
+        <div class="card-top">
+          <div class="card-name">Hash-Identifier</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span><span class="badge badge-kali">KALI</span></div>
+        </div>
+        <div class="card-desc">Identifica automáticamente el tipo de hash (MD5, SHA1, SHA256, bcrypt, etc.) a partir de su estructura. Primer paso antes de intentar crackear un hash.</div>
+        <div class="card-footer">
+          <button class="kali-btn" onclick="openModal('hashid')">ver comandos</button>
+        </div>
+      </div>
+
+      <div class="tool-card kali-card" data-cat="kali" data-name="john the ripper crackeo hash contraseñas">
+        <div class="card-top">
+          <div class="card-name">John the Ripper</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span><span class="badge badge-kali">KALI</span></div>
+        </div>
+        <div class="card-desc">Herramienta clásica de crackeo de hashes por fuerza bruta y diccionarios. Compatible con MD5, SHA, NTLM, bcrypt y más. Muy usada en auditorías forenses.</div>
+        <div class="card-footer">
+          <button class="kali-btn" onclick="openModal('john')">ver comandos</button>
+        </div>
+      </div>
+
+      <div class="tool-card kali-card" data-cat="kali" data-name="hashcat crackeo gpu hash rápido">
+        <div class="card-top">
+          <div class="card-name">Hashcat</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span><span class="badge badge-kali">KALI</span></div>
+        </div>
+        <div class="card-desc">El crackeador de hashes más rápido del mundo. Usa la GPU para procesar miles de millones de combinaciones por segundo. Soporta más de 300 tipos de hash.</div>
+        <div class="card-footer">
+          <button class="kali-btn" onclick="openModal('hashcat')">ver comandos</button>
+        </div>
+      </div>
+
+      <div class="tool-card kali-card" data-cat="kali" data-name="osintgram instagram osint análisis">
+        <div class="card-top">
+          <div class="card-name">Osintgram</div>
+          <div class="badges"><span class="badge badge-free">GRATIS</span><span class="badge badge-kali">KALI</span></div>
+        </div>
+        <div class="card-desc">Herramienta OSINT específica para Instagram: extrae seguidores, seguidos, fotos, likes, comentarios, ubicaciones y emails de un perfil público.</div>
+        <div class="card-footer">
+          <button class="kali-btn" onclick="openModal('osintgram')">ver comandos</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</main>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">LUIS GARCÍA // INFOSEC</div>
+  <div>Arsenal OSINT v2.0 · Actualizado 2026 · <a href="https://proyects-luis.netlify.app" target="_blank">proyects-luis.netlify.app</a></div>
+  <div>Solo para uso ético y legal. DFIR · OSINT · Cyber Intelligence</div>
+</footer>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModalOverlay(event)">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <div class="modal-title">🐧 KALI LINUX — INSTALL &amp; USE</div>
+      <button class="modal-close" onclick="closeModal()">[ cerrar ]</button>
+    </div>
+    <div class="modal-body" id="modal-body">
+    </div>
+  </div>
+</div>
+
+<script>
+// ---- LOGO EMBED ----
+document.getElementById('logo-img').src = 'data:image/jpeg;base64,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';
+
+// ---- TOOL DATA ----
+const tools = {
+  theharvester: {
+    name: 'theHarvester',
+    desc: 'Herramienta de reconocimiento que recolecta emails, subdominios, hosts, IPs y nombres de empleados de fuentes públicas como Google, Bing, Shodan, LinkedIn y más.',
+    install: `<span class="prompt">$</span> apt install theharvester -y
+<span class="comment"># o actualizar desde pip:</span>
+<span class="prompt">$</span> pip3 install theHarvester`,
+    use: `<span class="comment"># Buscar con todas las fuentes disponibles:</span>
+<span class="prompt">$</span> theHarvester -d dominio.com -b all
+
+<span class="comment"># Buscar solo en Google:</span>
+<span class="prompt">$</span> theHarvester -d dominio.com -b google -l 200
+
+<span class="comment"># Usar Shodan como fuente adicional:</span>
+<span class="prompt">$</span> theHarvester -d dominio.com -b shodan
+
+<span class="comment"># Guardar resultados en HTML:</span>
+<span class="prompt">$</span> theHarvester -d dominio.com -b all -f reporte`
+  },
+  phoneinfoga: {
+    name: 'PhoneInfoga',
+    desc: 'Escanea números telefónicos usando fuentes OSINT abiertas para obtener información pública: país, operadora, tipo de línea y presencia en plataformas.',
+    install: `<span class="comment"># Descargar el binario oficial:</span>
+<span class="prompt">$</span> wget https://github.com/sundowndev/phoneinfoga/releases/latest/download/phoneinfoga_Linux_x86_64.tar.gz
+<span class="prompt">$</span> tar -xvf phoneinfoga_Linux_x86_64.tar.gz
+<span class="prompt">$</span> chmod +x phoneinfoga
+<span class="prompt">$</span> mv phoneinfoga /usr/local/bin/
+
+<span class="comment"># O via Docker:</span>
+<span class="prompt">$</span> docker pull sundowndev/phoneinfoga`,
+    use: `<span class="comment"># Escaneo básico de un número:</span>
+<span class="prompt">$</span> phoneinfoga scan -n "+5491123456789"
+
+<span class="comment"># Iniciar interfaz web:</span>
+<span class="prompt">$</span> phoneinfoga serve -p 8080
+
+<span class="comment"># Listar escáneres disponibles:</span>
+<span class="prompt">$</span> phoneinfoga scan --list`
+  },
+  exiftool: {
+    name: 'ExifTool',
+    desc: 'Extrae, edita y elimina metadatos de imágenes, videos, PDFs y documentos. Puede revelar coordenadas GPS, fecha de captura, modelo de cámara y software usado.',
+    install: `<span class="prompt">$</span> apt install exiftool -y
+<span class="comment"># Verificar instalación:</span>
+<span class="prompt">$</span> exiftool -ver`,
+    use: `<span class="comment"># Ver todos los metadatos de una imagen:</span>
+<span class="prompt">$</span> exiftool imagen.jpg
+
+<span class="comment"># Ver solo las coordenadas GPS:</span>
+<span class="prompt">$</span> exiftool -gps:all imagen.jpg
+
+<span class="comment"># Eliminar TODOS los metadatos (limpieza forense):</span>
+<span class="prompt">$</span> exiftool -all= imagen.jpg
+
+<span class="comment"># Procesar carpeta completa:</span>
+<span class="prompt">$</span> exiftool /ruta/carpeta/
+
+<span class="comment"># Exportar a CSV:</span>
+<span class="prompt">$</span> exiftool -csv *.jpg > metadatos.csv`
+  },
+  holehe: {
+    name: 'Holehe',
+    desc: 'Verifica si un email está registrado en más de 120 sitios web sin enviar correos ni activar alertas. Ideal para construir un perfil OSINT de un objetivo.',
+    install: `<span class="prompt">$</span> pip3 install holehe
+<span class="comment"># o desde el repositorio:</span>
+<span class="prompt">$</span> git clone https://github.com/megadose/holehe
+<span class="prompt">$</span> cd holehe && pip3 install -r requirements.txt`,
+    use: `<span class="comment"># Verificar un email en todos los sitios:</span>
+<span class="prompt">$</span> holehe objetivo@gmail.com
+
+<span class="comment"># Guardar resultados en archivo:</span>
+<span class="prompt">$</span> holehe objetivo@gmail.com > resultados.txt
+
+<span class="comment"># Solo mostrar los sitios donde SÍ está registrado:</span>
+<span class="prompt">$</span> holehe objetivo@gmail.com --only-used`
+  },
+  sherlock: {
+    name: 'Sherlock',
+    desc: 'Busca un nombre de usuario en más de 400 sitios web simultáneamente. Fundamental para rastrear la presencia digital de un objetivo en redes sociales y foros.',
+    install: `<span class="prompt">$</span> apt install sherlock -y
+<span class="comment"># O desde GitHub (versión más actualizada):</span>
+<span class="prompt">$</span> git clone https://github.com/sherlock-project/sherlock
+<span class="prompt">$</span> cd sherlock
+<span class="prompt">$</span> pip3 install -r requirements.txt`,
+    use: `<span class="comment"># Buscar un username:</span>
+<span class="prompt">$</span> sherlock nombre_usuario
+
+<span class="comment"># Buscar múltiples usernames:</span>
+<span class="prompt">$</span> sherlock usuario1 usuario2 usuario3
+
+<span class="comment"># Guardar en archivo de texto:</span>
+<span class="prompt">$</span> sherlock nombre_usuario --output resultados.txt
+
+<span class="comment"># Incluir sitios con timeout (más resultados):</span>
+<span class="prompt">$</span> sherlock nombre_usuario --timeout 10
+
+<span class="comment"># Solo mostrar sitios encontrados:</span>
+<span class="prompt">$</span> sherlock nombre_usuario --print-found`
+  },
+  maltego: {
+    name: 'Maltego',
+    desc: 'Plataforma visual de ciberinteligencia que permite mapear relaciones entre entidades: personas, emails, dominios, IPs y redes sociales mediante grafos interactivos.',
+    install: `<span class="comment"># Maltego viene preinstalado en Kali. Para abrir:</span>
+<span class="prompt">$</span> maltego
+
+<span class="comment"># Si no está instalado:</span>
+<span class="prompt">$</span> apt install maltego -y
+
+<span class="comment"># Registrar cuenta gratuita (Community Edition) en:</span>
+<span class="comment"># https://www.maltego.com/ce-registration/</span>`,
+    use: `<span class="comment"># 1. Abrir Maltego desde terminal o menú</span>
+<span class="prompt">$</span> maltego
+
+<span class="comment"># 2. Crear nuevo grafo: File → New</span>
+<span class="comment"># 3. Arrastrar una entidad (Person, Domain, IP, Email)</span>
+<span class="comment"># 4. Clic derecho → Run Transforms</span>
+<span class="comment"># 5. Seleccionar transformación OSINT a ejecutar</span>
+
+<span class="comment"># Transforms útiles:</span>
+<span class="comment"># - To Email Address (de persona a emails)</span>
+<span class="comment"># - To Person (de email a persona)</span>
+<span class="comment"># - To Domain (de IP a dominio)`
+  },
+  reconng: {
+    name: 'Recon-ng',
+    desc: 'Framework de reconocimiento web modular. Permite hacer OSINT de forma estructurada con módulos especializados para dominios, emails, redes sociales y más.',
+    install: `<span class="prompt">$</span> apt install recon-ng -y
+<span class="comment"># O desde GitHub:</span>
+<span class="prompt">$</span> git clone https://github.com/lanmaster53/recon-ng
+<span class="prompt">$</span> cd recon-ng && pip3 install -r REQUIREMENTS`,
+    use: `<span class="comment"># Iniciar Recon-ng:</span>
+<span class="prompt">$</span> recon-ng
+
+<span class="comment"># Dentro del framework:</span>
+<span class="prompt">[recon-ng]$</span> workspaces create investigacion1
+<span class="prompt">[recon-ng]$</span> marketplace search domains
+<span class="prompt">[recon-ng]$</span> marketplace install recon/domains-hosts/hackertarget
+<span class="prompt">[recon-ng]$</span> modules load recon/domains-hosts/hackertarget
+<span class="prompt">[recon-ng]$</span> options set SOURCE dominio.com
+<span class="prompt">[recon-ng]$</span> run
+<span class="prompt">[recon-ng]$</span> show hosts`
+  },
+  hashid: {
+    name: 'Hash-Identifier',
+    desc: 'Analiza la estructura de un hash para identificar su tipo (MD5, SHA1, SHA256, bcrypt, NTLM, etc.). Primer paso obligatorio antes de intentar crackearlo.',
+    install: `<span class="prompt">$</span> apt install hash-identifier -y
+<span class="comment"># Alternativa (hashid):</span>
+<span class="prompt">$</span> pip3 install hashid`,
+    use: `<span class="comment"># Modo interactivo:</span>
+<span class="prompt">$</span> hash-identifier
+<span class="comment"># → pegar el hash cuando lo pida</span>
+
+<span class="comment"># Con hashid directo:</span>
+<span class="prompt">$</span> hashid 5f4dcc3b5aa765d61d8327deb882cf99
+
+<span class="comment"># Identificar hash de un archivo:</span>
+<span class="prompt">$</span> hashid -f hashes.txt
+
+<span class="comment"># Mostrar modo hashcat correspondiente:</span>
+<span class="prompt">$</span> hashid -m 5f4dcc3b5aa765d61d8327deb882cf99`
+  },
+  john: {
+    name: 'John the Ripper',
+    desc: 'Herramienta de crackeo de contraseñas por fuerza bruta y diccionarios. Compatible con MD5, SHA, NTLM, bcrypt, ZIP passwords y más. Esencial en auditorías forenses.',
+    install: `<span class="prompt">$</span> apt install john -y
+<span class="comment"># Verificar instalación:</span>
+<span class="prompt">$</span> john --list=formats | head -20`,
+    use: `<span class="comment"># Crackear con diccionario (rockyou):</span>
+<span class="prompt">$</span> john hash.txt --wordlist=/usr/share/wordlists/rockyou.txt
+
+<span class="comment"># Especificar formato del hash:</span>
+<span class="prompt">$</span> john hash.txt --format=md5crypt --wordlist=rockyou.txt
+
+<span class="comment"># Ver contraseñas ya crackeadas:</span>
+<span class="prompt">$</span> john hash.txt --show
+
+<span class="comment"># Modo incremental (fuerza bruta):</span>
+<span class="prompt">$</span> john hash.txt --incremental
+
+<span class="comment"># Crackear hash NTLM de Windows:</span>
+<span class="prompt">$</span> john hash.txt --format=NT --wordlist=rockyou.txt`
+  },
+  hashcat: {
+    name: 'Hashcat',
+    desc: 'El crackeador de hashes más rápido del mundo, acelerado por GPU. Soporta más de 300 tipos de hash y múltiples modos de ataque. Usado en auditorías profesionales.',
+    install: `<span class="prompt">$</span> apt install hashcat -y
+<span class="comment"># Verificar y ver info de GPU:</span>
+<span class="prompt">$</span> hashcat -I`,
+    use: `<span class="comment"># Ataque por diccionario (MD5 = modo 0):</span>
+<span class="prompt">$</span> hashcat -m 0 hash.txt /usr/share/wordlists/rockyou.txt
+
+<span class="comment"># Ataque por diccionario (SHA-256 = modo 1400):</span>
+<span class="prompt">$</span> hashcat -m 1400 hash.txt rockyou.txt
+
+<span class="comment"># Ataque por reglas (más variaciones):</span>
+<span class="prompt">$</span> hashcat -m 0 hash.txt rockyou.txt -r rules/best64.rule
+
+<span class="comment"># Fuerza bruta con máscara (6 dígitos):</span>
+<span class="prompt">$</span> hashcat -m 0 hash.txt -a 3 ?d?d?d?d?d?d
+
+<span class="comment"># Ver modos disponibles:</span>
+<span class="prompt">$</span> hashcat --example-hashes | grep -A2 "MODE"
+
+<span class="comment"># Modos comunes: MD5=0, SHA1=100, SHA256=1400, NTLM=1000, bcrypt=3200</span>`
+  },
+  osintgram: {
+    name: 'Osintgram',
+    desc: 'Herramienta OSINT para Instagram: extrae followers, following, fotos, likes, comentarios, ubicaciones, emails y números de teléfono de perfiles públicos.',
+    install: `<span class="prompt">$</span> git clone https://github.com/Datalux/Osintgram
+<span class="prompt">$</span> cd Osintgram
+<span class="prompt">$</span> pip3 install -r requirements.txt
+<span class="comment"># Configurar credenciales en credentials/credentials.ini:</span>
+<span class="prompt">$</span> cp credentials/credentials.ini.example credentials/credentials.ini
+<span class="comment"># Editar con tu cuenta de Instagram (cuenta secundaria recomendada)</span>`,
+    use: `<span class="comment"># Ejecutar contra un perfil:</span>
+<span class="prompt">$</span> python3 main.py nombre_usuario_objetivo
+
+<span class="comment"># Comandos dentro de Osintgram:</span>
+<span class="comment"># followers  → lista de seguidores</span>
+<span class="comment"># followings → lista de seguidos</span>
+<span class="comment"># photos     → URLs de fotos del perfil</span>
+<span class="comment"># stories    → historias activas</span>
+<span class="comment"># location   → ubicaciones etiquetadas</span>
+<span class="comment"># email      → emails encontrados</span>
+<span class="comment"># hashtags   → hashtags usados</span>
+<span class="comment"># addrs      → direcciones en la bio</span>`
+  }
+};
+
+function openModal(toolKey) {
+  const tool = tools[toolKey];
+  if (!tool) return;
+  
+  document.getElementById('modal-body').innerHTML = `
+    <div class="modal-tool-name">${tool.name}</div>
+    <div class="modal-desc">${tool.desc}</div>
+    
+    <div class="cmd-section">
+      <div class="cmd-label">// INSTALACIÓN</div>
+      <div class="cmd-block">
+        <button class="copy-btn" onclick="copyCmd(this, 'install-${toolKey}')">COPIAR</button>
+        <code id="install-${toolKey}">${tool.install}</code>
+      </div>
+    </div>
+    
+    <div class="cmd-section">
+      <div class="cmd-label">// USO &amp; COMANDOS</div>
+      <div class="cmd-block">
+        <button class="copy-btn" onclick="copyCmd(this, 'use-${toolKey}')">COPIAR</button>
+        <code id="use-${toolKey}">${tool.use}</code>
+      </div>
+    </div>
+  `;
+  
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
+function closeModalOverlay(e) {
+  if (e.target === document.getElementById('modal-overlay')) closeModal();
+}
+
+function copyCmd(btn, id) {
+  const el = document.getElementById(id);
+  const text = el.innerText || el.textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✓ OK';
+    setTimeout(() => btn.textContent = 'COPIAR', 1500);
+  });
+}
+
+// ---- SEARCH + FILTER ----
+const searchInput = document.getElementById('searchInput');
+const filterBtns = document.querySelectorAll('.filter-btn');
+let activeFilter = 'all';
+
+function applyFilters() {
+  const query = searchInput.value.toLowerCase().trim();
+  const cards = document.querySelectorAll('.tool-card');
+  const sections = document.querySelectorAll('.section');
+
+  cards.forEach(card => {
+    const cat = card.dataset.cat;
+    const name = (card.dataset.name || '').toLowerCase();
+    const desc = card.querySelector('.card-desc').textContent.toLowerCase();
+    const cardName = card.querySelector('.card-name').textContent.toLowerCase();
+    
+    const matchesCat = activeFilter === 'all' || cat === activeFilter;
+    const matchesQuery = !query || name.includes(query) || desc.includes(query) || cardName.includes(query);
+    
+    card.style.display = (matchesCat && matchesQuery) ? '' : 'none';
+  });
+
+  sections.forEach(section => {
+    const visibleCards = section.querySelectorAll('.tool-card:not([style*="none"])');
+    section.style.display = visibleCards.length ? '' : 'none';
+  });
+}
+
+searchInput.addEventListener('input', applyFilters);
+
+filterBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    filterBtns.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeFilter = btn.dataset.cat;
+    applyFilters();
+  });
+});
+
+// ---- TOTAL COUNT ----
+const totalCards = document.querySelectorAll('.tool-card').length;
+document.getElementById('total-count').textContent = totalCards + '+';
+
+// ---- KEYBOARD SHORTCUT ----
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    e.preventDefault();
+    searchInput.focus();
+  }
+});
+</script>
+</body>
+</html>
