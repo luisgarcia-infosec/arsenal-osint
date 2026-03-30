@@ -69,11 +69,13 @@ Todas las herramientas listadas deben usarse **dentro del marco legal vigente** 
 
 ![Arsenal OSINT](210628973.jpeg)
 
+![Arsenal OSINT](ArsenalOsint.JPG)
+
 ---
 
 ## 👤 Autor
 
-**Luis García** — [@LuisGarcia-InfoSec](https://www.linkedin.com/in/LuisGarcia-InfoSec)  
+**Luis García** — [@LuisGarcia-InfoSec](https://www.linkedin.com/in/luis-garc%C3%ADa-8138762b6/)  
 Analista de Ciberseguridad & Forense Digital · Buenos Aires, Argentina  
 🌐 [proyects-luis.netlify.app](https://proyects-luis.netlify.app)
 
